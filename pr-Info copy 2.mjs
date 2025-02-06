@@ -6,7 +6,6 @@ const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 // const repo = 'repository';
 const owner = "mikhailnakanechny"; // Get the owner from the environment variable
 const repo = "mikhailnakanechny.github.io"; // Get the repo from the environment variable
-// List of allowed task prefixes in commit messages
 const allowedPrefixList = [
   "feature",
   "task",
@@ -16,23 +15,21 @@ const allowedPrefixList = [
   "release",
   "us",
 ];
-const excludedPrefixList = [
-  "Merge",
-];
 
-function getUniqueObjects(array1, array2, key) {
-  const combinedArray = [...array1, ...array2];
+async function getCommitBySha(commitSha) {
+  try {
+    const response = await octokit.repos.getCommit({
+      owner,
+      repo,
+      ref: commitSha,
+    });
 
-  const seen = new Set();
-  return combinedArray.filter((obj) => {
-    const keyValue = obj[key];
-    if (seen.has(keyValue)) {
-      return false; // Object is a duplicate
-    } else {
-      seen.add(keyValue);
-      return true; // Object is unique
-    }
-  });
+    console.log(response.data);
+    return response;
+  } catch (error) {
+    console.error('Error:', error.message);
+    return '';
+  }
 }
 
 async function getCommitMessagesFromLastDeployment() {
@@ -41,7 +38,7 @@ async function getCommitMessagesFromLastDeployment() {
     const { data: deployments } = await octokit.repos.listDeployments({
       owner,
       repo,
-      per_page: 3,
+      per_page: 10,
       page: 1,
     });
 
@@ -91,10 +88,9 @@ async function getCommitMessagesFromLastDeployment() {
       return;
     }
 
-    //find unique commits
     const shaCommitsLast = commitsLast.map((value) => {
       return value.sha;
-    });
+    })
 
     const shaCommitsOld = commitsOld.map((value) => {
       return value.sha;
@@ -104,44 +100,46 @@ async function getCommitMessagesFromLastDeployment() {
       ...new Set([...shaCommitsLast, ...shaCommitsOld]),
     ];
 
-    const newCommitsSHA = uniqueCommitsSHA.filter(item => !shaCommitsOld.includes(item));
-    
-    let uniqueCommits = [];
-    commitsLast.forEach((commit) => {
-      if (newCommitsSHA.includes(commit.sha)) {
-        uniqueCommits.push(commit);
+    const uniqueCommits = [];
+    commitsLast.forEach(commit => {
+      if (uniqueCommitsSHA.includes(commit.sha)) {
+        uniqueCommits.push(commit)
       }
+    })
+
+    console.log("Unique commits:");
+    console.log(JSON.stringify(uniqueCommits));
+
+    const uniqueCommitsList = [];
+
+    uniqueCommitsSHA.forEach((commitSha) => {
+      const commit = getCommitBySha(commitSha);
+      uniqueCommitsList.push(commit);
     });
 
-    //get tasks numbers from commits
     const commitsNames = [];
     const taskNumbers = [];
-    console.log("Commits messages:" + commitsNames);
-    uniqueCommits.forEach((element) => {
-      console.log("***" + element?.commit?.message);
-      const commitSplitdMsg = element?.commit?.message?.split(":");
+
+    uniqueCommitsList.forEach((commit) => {
+      const commitSplitdMsg = commit?.commit?.split(":");
       if (
-        !!commitSplitdMsg &&
-        commitSplitdMsg.length > 1 &&
+        !!commitSplitdMsg && commitSplitdMsg.length > 1 &&
         allowedPrefixList.some((substring) =>
-          commitSplitdMsg[0].includes(substring)
-        )
-        && !excludedPrefixList.some((substring) =>
           commitSplitdMsg[0].includes(substring)
         )
       ) {
         commitsNames.push(commitSplitdMsg[0]);
         const splitTasksNumber = commitSplitdMsg[0].split("/");
         if (splitTasksNumber.length > 1) {
-          taskNumbers.push(splitTasksNumber[1]);
+          taskNumbers.push(splitTasksNumber)[1];
         }
       }
     });
+    console.log("Commits names:" + commitsNames);
 
-    console.log("Task numbers list:");
     const uniqueTasksNumbers = Array.from(new Set(taskNumbers));
-    uniqueTasksNumbers.forEach((elem) => console.log(elem));
-    return uniqueTasksNumbers;
+    console.log("Task numbers list:" + uniqueTasksNumbers);
+
   } catch (error) {
     console.error("Error fetching commit messages:", error);
   }
