@@ -17,13 +17,12 @@ async function getCommitMessagesFromLastDeployment() {
       page: 1,
     });
 
-    if (deployments.length < 2) {
-      console.log("To get the last deployment tickets info at least 2 deployments are required.");
+    if (deployments.length === 0) {
+      console.log("No deployments found.");
       return;
     }
 
     const lastDeployment = deployments[0];
-    const oldDeployment = deployments[1];
     const deploymentId = lastDeployment.id;
 
     // Fetch deployment statuses to check the status of the last deployment
@@ -40,36 +39,25 @@ async function getCommitMessagesFromLastDeployment() {
       console.log("The last deployment was not successful.");
       return;
     }
+
     const ref = lastDeployment.ref;
-    const refOld = oldDeployment.ref;
 
     // Fetch commits from the deployment ref
-    const { data: commitsLast } = await octokit.repos.listCommits({
+    const { data: commits } = await octokit.repos.listCommits({
       owner,
       repo,
       sha: ref,
     });
 
-    const { data: commitsOld } = await octokit.repos.listCommits({
-      owner,
-      repo,
-      sha: refOld,
-    });
-
-    if (!commitsLast.length || !commitsOld.length) {
-      console.log("There is no correct commits found.");
+    if (!commits.length) {
+      console.log("There is no commits found.");
       return;
     }
-
-    const latestCommitsSet = new Set(commitsLast);
-    const previousCommitsSet = new Set(commitsOld);
-
-    const uniqueCommits = [...latestCommitsSet].filter(sha => !previousCommitsSet.has(sha));
 
     const commitsMessageList = [];
 
     console.log("Commits in the last deployment:");
-    uniqueCommits.forEach((commit) => {
+    commits.forEach((commit) => {
       console.log(`- ${commit.commit.message}`);
       commitsMessageList.push(commit.commit.message);
     });
