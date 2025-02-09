@@ -16,7 +16,24 @@ const allowedPrefixList = [
   "release",
   "us",
 ];
-const excludedPrefixList = ["Merge"];
+const excludedPrefixList = [
+  "Merge",
+];
+
+function getUniqueObjects(array1, array2, key) {
+  const combinedArray = [...array1, ...array2];
+
+  const seen = new Set();
+  return combinedArray.filter((obj) => {
+    const keyValue = obj[key];
+    if (seen.has(keyValue)) {
+      return false; // Object is a duplicate
+    } else {
+      seen.add(keyValue);
+      return true; // Object is unique
+    }
+  });
+}
 
 async function getCommitMessagesFromLastDeployment() {
   try {
@@ -87,10 +104,8 @@ async function getCommitMessagesFromLastDeployment() {
       ...new Set([...shaCommitsLast, ...shaCommitsOld]),
     ];
 
-    const newCommitsSHA = uniqueCommitsSHA.filter(
-      (item) => !shaCommitsOld.includes(item)
-    );
-
+    const newCommitsSHA = uniqueCommitsSHA.filter(item => !shaCommitsOld.includes(item));
+    
     let uniqueCommits = [];
     commitsLast.forEach((commit) => {
       if (newCommitsSHA.includes(commit.sha)) {
@@ -99,9 +114,8 @@ async function getCommitMessagesFromLastDeployment() {
     });
 
     //get tasks numbers from commits
-    // const commitsNames = [];
+    const commitsNames = [];
     const taskNumbers = [];
-    const regex = /^[a-zA-Z]{3,5}-\d{3,5}$/
     console.log("Commits messages:" + commitsNames);
     uniqueCommits.forEach((element) => {
       console.log("***" + element?.commit?.message);
@@ -109,15 +123,18 @@ async function getCommitMessagesFromLastDeployment() {
       if (
         !!commitSplitdMsg &&
         commitSplitdMsg.length > 1 &&
-        !excludedPrefixList.some((substring) =>
+        allowedPrefixList.some((substring) =>
           commitSplitdMsg[0].includes(substring)
-        ) &&
-        (allowedPrefixList.some((substring) =>
+        )
+        && !excludedPrefixList.some((substring) =>
           commitSplitdMsg[0].includes(substring)
-        ) ||
-          regex.test(commitSplitdMsg[0]))
+        )
       ) {
-        taskNumbers.push(splitTasksNumber[0]);
+        commitsNames.push(commitSplitdMsg[0]);
+        const splitTasksNumber = commitSplitdMsg[0].split("/");
+        if (splitTasksNumber.length > 1) {
+          taskNumbers.push(splitTasksNumber[1]);
+        }
       }
     });
 
