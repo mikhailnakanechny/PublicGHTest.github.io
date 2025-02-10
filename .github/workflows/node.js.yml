@@ -32,9 +32,11 @@ jobs:
         echo "Deploying the application..."
 
     - name: Run Node.js Script
+      # Ensures the script runs only if the deployment was successful
+      if: success()  
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_OWNER: ${{ github.repository_owner }}
         GITHUB_REPO: ${{ github.event.repository.name }}
-      run: node github-deployed-tickets.mjs
+      run: node github-deployed-tickets.mjs # path to script file must be changed
 
