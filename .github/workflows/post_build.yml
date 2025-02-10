@@ -1,0 +1,38 @@
+name: Pos-deploy Workflow
+
+on:
+  workflow_run:
+    workflows: ["pages build and deployment"] #Must be changed to actual deploy workflow name
+    types:
+      - completed
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20' # Specify the Node.js version you need
+
+    - name: Install dependencies
+      run: npm install @octokit/rest
+
+    - name: Deploy
+      run: |
+        # Your deployment command here
+        echo "Deploying the application..."
+
+    - name: Run Node.js Script
+      # Ensures the script runs only if the deployment was successful
+      if: success()  
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_OWNER: ${{ github.repository_owner }}
+        GITHUB_REPO: ${{ github.event.repository.name }}
+      run: node github-deployed-tickets.mjs # path to script file must be changed
