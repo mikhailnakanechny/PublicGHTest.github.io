@@ -1,13 +1,10 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
-name: Deploy and Run Script
+name: Pos-deploy Workflow
 
 on:
-  push:
-    branches: [ "main", "develop" ]
-  pull_request:
-    branches: [ "main", "develop" ]
+  workflow_run:
+    workflows: ["pages build and deployment"] #Must be changed to actual deploy workflow name
+    types:
+      - completed
 
 jobs:
   build:
@@ -39,4 +36,3 @@ jobs:
         GITHUB_OWNER: ${{ github.repository_owner }}
         GITHUB_REPO: ${{ github.event.repository.name }}
       run: node github-deployed-tickets.mjs # path to script file must be changed
-
