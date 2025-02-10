@@ -1,4 +1,4 @@
-name: Pos-deploy Workflow
+name: Post-deploy Workflow
 
 on:
   workflow_run:
